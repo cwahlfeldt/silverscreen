@@ -1,0 +1,26 @@
+{
+  "name": "silverscreen",
+  "version": "1.0.0",
+  "description": "CLI tool for capturing responsive website screenshots",
+  "main": "index.js",
+  "bin": {
+    "silverscreen": "./bin/silverscreen.js"
+  },
+  "scripts": {
+    "start": "node bin/silverscreen.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "screenshot",
+    "responsive",
+    "cli",
+    "web",
+    "testing"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^11.0.0",
+    "puppeteer": "^24.10.2"
+  }
+}
