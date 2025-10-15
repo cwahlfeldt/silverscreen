@@ -4,6 +4,7 @@ import { Command } from 'commander';
 import { readUrlsFromFile } from '../src/urlReader.js';
 import { Screenshotter } from '../src/screenshotter.js';
 import { loadConfig } from '../src/configLoader.js';
+import { generateManifest, copyScreenshots } from '../src/generateManifest.js';
 
 const program = new Command();
 
@@ -64,6 +65,13 @@ program
 
       await screenshotter.close();
       console.log(`\n✅ Complete! Screenshots saved to ${outputDir}/`);
+
+      // Generate manifest for viewer
+      console.log(`\n📊 Generating viewer manifest...`);
+      generateManifest(outputDir, 'viewer/public/manifest.json');
+      copyScreenshots(outputDir, 'viewer/public');
+      console.log(`\n🎉 Viewer ready! Run 'npm run viewer:dev' to preview`);
+
 
     } catch (error) {
       console.error('❌ Error:', error.message);

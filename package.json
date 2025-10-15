@@ -9,7 +9,11 @@
   },
   "scripts": {
     "start": "node bin/silverscreen.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "viewer:generate": "node src/generateManifest.js",
+    "viewer:dev": "cd viewer && npm run dev",
+    "viewer:build": "npm run viewer:generate && cd viewer && npm run build",
+    "viewer:preview": "cd viewer && npm run preview"
   },
   "keywords": [
     "screenshot",
