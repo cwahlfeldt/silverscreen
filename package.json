@@ -2,6 +2,7 @@
   "name": "silverscreen",
   "version": "1.0.0",
   "description": "CLI tool for capturing responsive website screenshots",
+  "type": "module",
   "main": "index.js",
   "bin": {
     "silverscreen": "./bin/silverscreen.js"

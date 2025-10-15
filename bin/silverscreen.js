@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-const { Command } = require('commander');
-const { readUrlsFromFile } = require('../src/urlReader');
-const { Screenshotter } = require('../src/screenshotter');
+import { Command } from 'commander';
+import { readUrlsFromFile } from '../src/urlReader.js';
+import { Screenshotter } from '../src/screenshotter.js';
+import { loadConfig } from '../src/configLoader.js';
 
 const program = new Command();
 
@@ -11,10 +12,16 @@ program
   .description('CLI tool for capturing responsive website screenshots')
   .version('1.0.0')
   .argument('<urls-file>', 'text file containing URLs (one per line)')
-  .option('-o, --output <dir>', 'output directory', 'screenshots')
+  .option('-o, --output <dir>', 'output directory (overrides config)')
   .action(async (urlsFile, options) => {
     try {
       console.log('🎬 Starting Silverscreen...');
+
+      // Load configuration
+      const config = await loadConfig();
+
+      // CLI option overrides config
+      const outputDir = options.output || config.outputDir;
 
       const urls = readUrlsFromFile(urlsFile);
       console.log(`📋 Found ${urls.length} valid URLs to process`);
@@ -24,7 +31,7 @@ program
         process.exit(1);
       }
 
-      const screenshotter = new Screenshotter();
+      const screenshotter = new Screenshotter(config);
       await screenshotter.init();
       console.log('🚀 Browser initialized');
 
@@ -32,11 +39,11 @@ program
         const url = urls[i];
         console.log(`\n📸 Processing (${i + 1}/${urls.length}): ${url}`);
 
-        await screenshotter.captureScreenshots(url, options.output);
+        await screenshotter.captureScreenshots(url, outputDir);
       }
 
       await screenshotter.close();
-      console.log(`\n✅ Complete! Screenshots saved to ${options.output}/`);
+      console.log(`\n✅ Complete! Screenshots saved to ${outputDir}/`);
 
     } catch (error) {
       console.error('❌ Error:', error.message);

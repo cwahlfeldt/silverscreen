@@ -1,6 +1,15 @@
-const fs = require('fs');
+import fs from 'fs';
 
-function readUrlsFromFile(filePath) {
+function isValidUrl(string) {
+  try {
+    new URL(string);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+export function readUrlsFromFile(filePath) {
   try {
     const content = fs.readFileSync(filePath, 'utf8');
     const urls = content
@@ -14,14 +23,3 @@ function readUrlsFromFile(filePath) {
     throw new Error(`Failed to read URL file: ${error.message}`);
   }
 }
-
-function isValidUrl(string) {
-  try {
-    new URL(string);
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
-
-module.exports = { readUrlsFromFile };

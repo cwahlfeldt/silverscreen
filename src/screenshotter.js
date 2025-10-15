@@ -1,8 +1,9 @@
-const puppeteer = require("puppeteer");
-const fs = require("fs");
-const path = require("path");
+import puppeteer from "puppeteer";
+import fs from "fs";
+import path from "path";
+import { PluginManager } from "./plugins/index.js";
 
-const BREAKPOINTS = {
+const DEFAULT_BREAKPOINTS = {
   "mobile-390px": 390,
   "tablet-768px": 768,
   "desktop-1440px": 1440,
@@ -10,14 +11,31 @@ const BREAKPOINTS = {
 };
 
 class Screenshotter {
-  constructor() {
+  constructor(config = {}) {
     this.browser = null;
+
+    // Support legacy plugins array or new config object
+    if (Array.isArray(config)) {
+      this.config = {
+        plugins: config,
+        browser: { headless: "new" },
+        screenshot: { fullPage: true },
+        breakpoints: DEFAULT_BREAKPOINTS,
+      };
+    } else {
+      this.config = {
+        plugins: config.plugins || [],
+        browser: config.browser || { headless: "new" },
+        screenshot: config.screenshot || { fullPage: true },
+        breakpoints: config.breakpoints || DEFAULT_BREAKPOINTS,
+      };
+    }
+
+    this.pluginManager = new PluginManager(this.config.plugins);
   }
 
   async init() {
-    this.browser = await puppeteer.launch({
-      headless: "new",
-    });
+    this.browser = await puppeteer.launch(this.config.browser);
   }
 
   async close() {
@@ -72,8 +90,8 @@ class Screenshotter {
         timeout: 30000,
       });
 
-      // Check for sandbox button and click if present
-      await this.handleSandboxButton(page);
+      // Run all plugins to handle page interactions
+      await this.pluginManager.runPlugins(page);
 
       // Create page-specific directory
       const pageDirPath = path.join(outputDir, pageDir);
@@ -81,7 +99,7 @@ class Screenshotter {
         fs.mkdirSync(pageDirPath, { recursive: true });
       }
 
-      for (const [breakpointName, width] of Object.entries(BREAKPOINTS)) {
+      for (const [breakpointName, width] of Object.entries(this.config.breakpoints)) {
         await page.setViewport({
           width: width,
           height: 1080,
@@ -95,7 +113,7 @@ class Screenshotter {
 
         await page.screenshot({
           path: filepath,
-          fullPage: true,
+          ...this.config.screenshot,
         });
 
         console.log(`✓ ${breakpointName}: ${pageDir}/${filename}`);
@@ -106,68 +124,6 @@ class Screenshotter {
       await page.close();
     }
   }
-
-  async handleSandboxButton(page) {
-    try {
-      // Check if sandbox button exists
-      const sandboxButton = await page.$(".pds-button");
-
-      if (sandboxButton) {
-        console.log("  🔘 Found sandbox button, clicking...");
-
-        // Click the button
-        await sandboxButton.click();
-
-        // Wait for navigation to complete
-        await page.waitForNavigation({
-          waitUntil: "networkidle2",
-          timeout: 10000,
-        });
-
-        console.log("  ✓ Sandbox button clicked, page loaded");
-
-        // After sandbox navigation, check for cookie notice
-        await this.handleCookieNotice(page);
-      }
-    } catch (error) {
-      // If no button found or click fails, continue normally
-      console.log(
-        "  ⚠️  No sandbox button found or click failed, continuing...",
-      );
-    }
-
-    // Also check for cookie notice on regular pages
-    if (!(await page.$(".pds-button"))) {
-      await this.handleCookieNotice(page);
-    }
-  }
-
-  async handleCookieNotice(page) {
-    try {
-      // Wait a moment for any cookie notices to appear
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Check if cookie close button exists
-      const cookieButton = await page.$(".ila-cookieb__close-button");
-
-      if (cookieButton) {
-        console.log("  🍪 Found cookie notice, dismissing...");
-
-        // Click the close button
-        await cookieButton.click();
-
-        // Wait a moment for the notice to disappear
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        console.log("  ✓ Cookie notice dismissed");
-      }
-    } catch (error) {
-      // If no cookie notice found or click fails, continue normally
-      console.log(
-        "  ⚠️  No cookie notice found or dismissal failed, continuing...",
-      );
-    }
-  }
 }
 
-module.exports = { Screenshotter };
+export { Screenshotter };
