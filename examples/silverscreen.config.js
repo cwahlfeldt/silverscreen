@@ -8,6 +8,13 @@ import { CookiePlugin, SandboxPlugin } from '../src/plugins/index.js';
  */
 
 export default {
+  // URLs to capture (optional - can also use CLI argument with text file)
+  urls: [
+    'https://example.com',
+    'https://example.com/about',
+    'https://example.com/contact',
+  ],
+
   // Plugins to load (executed in order before each screenshot)
   plugins: [
     new CookiePlugin(),

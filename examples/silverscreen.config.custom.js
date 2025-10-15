@@ -35,6 +35,12 @@ class MyCustomPlugin extends BasePlugin {
 }
 
 export default {
+  // Define URLs in config instead of using a text file
+  urls: [
+    'https://example.com',
+    'https://example.com/products',
+  ],
+
   plugins: [
     new CookiePlugin(),
     new MyCustomPlugin(),

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Silverscreen is a CLI tool for capturing responsive website screenshots using Playwright. It processes multiple URLs from a text file and captures screenshots at different breakpoints across multiple browsers (Chromium, Firefox, WebKit, Edge).
+Silverscreen is a CLI tool for capturing responsive website screenshots using Playwright. It processes multiple URLs (from config file or text file) and captures screenshots at different breakpoints across multiple browsers (Chromium, Firefox, WebKit, Edge).
 
 ## Commands
 
@@ -13,11 +13,14 @@ Silverscreen is a CLI tool for capturing responsive website screenshots using Pl
 - `npm test` - No tests currently configured
 
 ### CLI Usage
-- `node bin/silverscreen.js <urls-file> [options]` - Direct execution
-- `silverscreen <urls-file> -o <output-dir>` - If installed globally
+- `node bin/silverscreen.js` - Run with URLs from config file
+- `node bin/silverscreen.js <urls-file>` - Run with URLs from text file
+- `silverscreen -o <output-dir>` - If installed globally (uses config URLs)
+- `silverscreen <urls-file> -o <output-dir>` - With text file and custom output
 
 ### Configuration
 - Place a `silverscreen.config.js` file in your project root to customize behavior
+- Define URLs directly in config or provide a text file via CLI
 - CLI will automatically detect and load the config file
 - CLI options override config file settings
 
@@ -31,9 +34,10 @@ Silverscreen is a CLI tool for capturing responsive website screenshots using Pl
    - Orchestrates the screenshot capture workflow
 
 2. **URL Reader** (`src/urlReader.js`)
-   - Reads and validates URLs from text files
+   - Reads and validates URLs from text files (optional)
    - Filters out invalid URLs using URL constructor validation
    - Returns array of valid URLs for processing
+   - URLs can also be defined directly in config file
 
 3. **Screenshotter** (`src/screenshotter.js`)
    - Main screenshot capture logic using Playwright
@@ -109,6 +113,13 @@ Create a `silverscreen.config.js` file in your project root:
 
 ```javascript
 export default {
+  // URLs to capture (optional - can also use CLI argument with text file)
+  urls: [
+    'https://example.com',
+    'https://example.com/about',
+    'https://example.com/contact',
+  ],
+
   // Plugins to load
   plugins: [],
 

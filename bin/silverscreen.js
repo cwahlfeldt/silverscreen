@@ -11,7 +11,7 @@ program
   .name('silverscreen')
   .description('CLI tool for capturing responsive website screenshots')
   .version('1.0.0')
-  .argument('<urls-file>', 'text file containing URLs (one per line)')
+  .argument('[urls-file]', 'text file containing URLs (one per line) - optional if URLs in config')
   .option('-o, --output <dir>', 'output directory (overrides config)')
   .action(async (urlsFile, options) => {
     try {
@@ -23,11 +23,31 @@ program
       // CLI option overrides config
       const outputDir = options.output || config.outputDir;
 
-      const urls = readUrlsFromFile(urlsFile);
-      console.log(`📋 Found ${urls.length} valid URLs to process`);
+      // Get URLs from file or config
+      let urls = [];
+      if (urlsFile) {
+        urls = readUrlsFromFile(urlsFile);
+        console.log(`📋 Found ${urls.length} valid URLs from file`);
+      } else if (config.urls && Array.isArray(config.urls)) {
+        urls = config.urls.filter(url => {
+          try {
+            new URL(url);
+            return true;
+          } catch {
+            console.warn(`⚠️  Invalid URL in config: ${url}`);
+            return false;
+          }
+        });
+        console.log(`📋 Found ${urls.length} valid URLs from config`);
+      } else {
+        console.log('❌ No URLs provided. Either:');
+        console.log('   1. Provide a URLs file: silverscreen <urls-file>');
+        console.log('   2. Add URLs to silverscreen.config.js');
+        process.exit(1);
+      }
 
       if (urls.length === 0) {
-        console.log('❌ No valid URLs found in file');
+        console.log('❌ No valid URLs found');
         process.exit(1);
       }
 

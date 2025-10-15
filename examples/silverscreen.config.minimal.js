@@ -6,6 +6,11 @@
  */
 
 export default {
+  // Define URLs directly in config
+  urls: [
+    'https://example.com',
+  ],
+
   // No plugins - just pure screenshot capture
   plugins: [],
 
