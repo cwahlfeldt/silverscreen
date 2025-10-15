@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Silverscreen is a CLI tool for capturing responsive website screenshots using Puppeteer. It processes multiple URLs from a text file and captures screenshots at different breakpoints.
+Silverscreen is a CLI tool for capturing responsive website screenshots using Playwright. It processes multiple URLs from a text file and captures screenshots at different breakpoints across multiple browsers (Chromium, Firefox, WebKit, Edge).
 
 ## Commands
 
@@ -36,9 +36,10 @@ Silverscreen is a CLI tool for capturing responsive website screenshots using Pu
    - Returns array of valid URLs for processing
 
 3. **Screenshotter** (`src/screenshotter.js`)
-   - Main screenshot capture logic using Puppeteer
-   - Manages browser lifecycle (launch/close)
+   - Main screenshot capture logic using Playwright
+   - Manages multiple browser instances (Chromium, Firefox, WebKit, Edge)
    - Handles viewport sizing for different breakpoints
+   - Organizes output by browser: `screenshots/browser-name/site-page/breakpoint.png`
    - Integrates with PluginManager for extensible page interactions
 
 4. **Plugin System** (`src/plugins/`)
@@ -58,20 +59,24 @@ Silverscreen is a CLI tool for capturing responsive website screenshots using Pu
 
 - **Configuration-First Architecture**: Flexible, file-based configuration
   - `silverscreen.config.js` in project root for customization
-  - Supports plugins, breakpoints, browser options, and screenshot settings
+  - Supports plugins, browsers, breakpoints, browser options, and screenshot settings
   - CLI options override config file settings
+- **Multi-Browser Support**: Capture screenshots across multiple browsers
+  - Supported browsers: Chromium, Chrome, Firefox, WebKit, Edge
+  - Configurable via `browsers` array in config
+  - Defaults to Chromium only if not specified
 - **Plugin Architecture**: Extensible system for handling site-specific interactions
   - Plugins extend BasePlugin and implement `handle(page)` method
   - Zero plugins loaded by default - pure screenshot capture out of the box
   - Users opt-in to plugins via config file
 - **Breakpoint Configuration**: Predefined responsive breakpoints (390px, 768px, 1440px, 1920px)
-- **File Organization**: Screenshots organized by breakpoint directories
-- **Error Handling**: Graceful error handling with console logging
-- **Browser Management**: Single browser instance for all screenshots with individual pages
+- **File Organization**: Screenshots organized by browser, then page: `screenshots/browser/page/breakpoint.png`
+- **Error Handling**: Graceful error handling with console logging per browser
+- **Browser Management**: Multiple browser instances launched concurrently, each with individual pages per URL
 
 ### Dependencies
 
-- **puppeteer**: Web scraping and screenshot capture
+- **playwright**: Web scraping and screenshot capture (supports Chromium, Firefox, WebKit)
 - **commander**: CLI argument parsing and command structure
 - **Node.js built-ins**: fs, path for file operations
 
@@ -110,14 +115,21 @@ export default {
   // Output directory
   outputDir: 'screenshots',
 
-  // Browser options (passed to Puppeteer)
-  browser: {
-    headless: 'new',
+  // Browsers to use for screenshots
+  // Supported: 'chromium', 'chrome', 'firefox', 'webkit', 'edge'
+  // Output structure: screenshots/browser-name/site-page/breakpoint.png
+  browsers: ['chromium', 'firefox', 'webkit'],
+
+  // Browser launch options (applies to all browsers)
+  browserOptions: {
+    headless: true,
   },
 
   // Screenshot options
   screenshot: {
     fullPage: true,
+    // type: 'png', // or 'jpeg', 'webp'
+    // quality: 90, // for jpeg/webp only
   },
 
   // Custom breakpoints (optional)

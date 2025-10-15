@@ -11,4 +11,7 @@ export default {
 
   // Optional: customize output directory
   outputDir: 'screenshots',
+
+  // Optional: use only chromium (default)
+  browsers: ['chromium'],
 };

@@ -33,7 +33,7 @@ program
 
       const screenshotter = new Screenshotter(config);
       await screenshotter.init();
-      console.log('🚀 Browser initialized');
+      console.log('🚀 Browsers initialized');
 
       for (let i = 0; i < urls.length; i++) {
         const url = urls[i];

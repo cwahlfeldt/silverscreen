@@ -1,4 +1,4 @@
-import puppeteer from "puppeteer";
+import { chromium, firefox, webkit } from "playwright";
 import fs from "fs";
 import path from "path";
 import { PluginManager } from "./plugins/index.js";
@@ -10,22 +10,32 @@ const DEFAULT_BREAKPOINTS = {
   "large-1920px": 1920,
 };
 
+const BROWSER_ENGINES = {
+  chromium: chromium,
+  chrome: chromium,
+  firefox: firefox,
+  webkit: webkit,
+  edge: chromium, // Edge uses Chromium engine
+};
+
 class Screenshotter {
   constructor(config = {}) {
-    this.browser = null;
+    this.browsers = new Map(); // Store multiple browser instances
 
     // Support legacy plugins array or new config object
     if (Array.isArray(config)) {
       this.config = {
         plugins: config,
-        browser: { headless: "new" },
+        browsers: ["chromium"], // Default to chromium only
+        browserOptions: { headless: true },
         screenshot: { fullPage: true },
         breakpoints: DEFAULT_BREAKPOINTS,
       };
     } else {
       this.config = {
         plugins: config.plugins || [],
-        browser: config.browser || { headless: "new" },
+        browsers: config.browsers || ["chromium"], // Default to chromium
+        browserOptions: config.browserOptions || config.browser || { headless: true },
         screenshot: config.screenshot || { fullPage: true },
         breakpoints: config.breakpoints || DEFAULT_BREAKPOINTS,
       };
@@ -35,13 +45,46 @@ class Screenshotter {
   }
 
   async init() {
-    this.browser = await puppeteer.launch(this.config.browser);
+    // Launch all configured browsers
+    for (const browserName of this.config.browsers) {
+      const browserEngine = BROWSER_ENGINES[browserName.toLowerCase()];
+      if (!browserEngine) {
+        console.warn(`⚠️  Unknown browser: ${browserName}. Supported: chromium, chrome, firefox, webkit, edge`);
+        continue;
+      }
+
+      try {
+        const browserOptions = { ...this.config.browserOptions };
+
+        // For Edge, add the channel option
+        if (browserName.toLowerCase() === "edge") {
+          browserOptions.channel = "msedge";
+        }
+
+        const browser = await browserEngine.launch(browserOptions);
+        this.browsers.set(browserName.toLowerCase(), browser);
+        console.log(`🌐 Launched ${browserName}`);
+      } catch (error) {
+        console.error(`✗ Failed to launch ${browserName}: ${error.message}`);
+      }
+    }
+
+    if (this.browsers.size === 0) {
+      throw new Error("No browsers could be launched");
+    }
   }
 
   async close() {
-    if (this.browser) {
-      await this.browser.close();
+    // Close all browser instances
+    for (const [browserName, browser] of this.browsers.entries()) {
+      try {
+        await browser.close();
+        console.log(`🌐 Closed ${browserName}`);
+      } catch (error) {
+        console.error(`✗ Failed to close ${browserName}: ${error.message}`);
+      }
     }
+    this.browsers.clear();
   }
 
   createPageDirectoryName(urlObj) {
@@ -75,53 +118,58 @@ class Screenshotter {
   }
 
   async captureScreenshots(url, outputDir = "screenshots") {
-    if (!this.browser) {
-      throw new Error("Browser not initialized. Call init() first.");
+    if (this.browsers.size === 0) {
+      throw new Error("No browsers initialized. Call init() first.");
     }
 
-    const page = await this.browser.newPage();
     const urlObj = new URL(url);
     const pageDir = this.createPageDirectoryName(urlObj);
     const timestamp = Date.now();
 
-    try {
-      await page.goto(url, {
-        waitUntil: "networkidle2",
-        timeout: 30000,
-      });
+    // Capture screenshots in each browser
+    for (const [browserName, browser] of this.browsers.entries()) {
+      console.log(`\n📸 Capturing in ${browserName}...`);
 
-      // Run all plugins to handle page interactions
-      await this.pluginManager.runPlugins(page);
+      const page = await browser.newPage();
 
-      // Create page-specific directory
-      const pageDirPath = path.join(outputDir, pageDir);
-      if (!fs.existsSync(pageDirPath)) {
-        fs.mkdirSync(pageDirPath, { recursive: true });
-      }
-
-      for (const [breakpointName, width] of Object.entries(this.config.breakpoints)) {
-        await page.setViewport({
-          width: width,
-          height: 1080,
-          deviceScaleFactor: 1,
+      try {
+        await page.goto(url, {
+          waitUntil: "networkidle",
+          timeout: 30000,
         });
 
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        // Run all plugins to handle page interactions
+        await this.pluginManager.runPlugins(page);
 
-        const filename = `${breakpointName}_${timestamp}.png`;
-        const filepath = path.join(pageDirPath, filename);
+        // Create browser-specific directory structure: screenshots/browser/page/
+        const browserDirPath = path.join(outputDir, browserName, pageDir);
+        if (!fs.existsSync(browserDirPath)) {
+          fs.mkdirSync(browserDirPath, { recursive: true });
+        }
 
-        await page.screenshot({
-          path: filepath,
-          ...this.config.screenshot,
-        });
+        for (const [breakpointName, width] of Object.entries(this.config.breakpoints)) {
+          await page.setViewportSize({
+            width: width,
+            height: 1080,
+          });
 
-        console.log(`✓ ${breakpointName}: ${pageDir}/${filename}`);
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
+          const filename = `${breakpointName}_${timestamp}.png`;
+          const filepath = path.join(browserDirPath, filename);
+
+          await page.screenshot({
+            path: filepath,
+            ...this.config.screenshot,
+          });
+
+          console.log(`  ✓ ${breakpointName}: ${browserName}/${pageDir}/${filename}`);
+        }
+      } catch (error) {
+        console.error(`  ✗ Failed to capture ${url} in ${browserName}: ${error.message}`);
+      } finally {
+        await page.close();
       }
-    } catch (error) {
-      console.error(`✗ Failed to capture ${url}: ${error.message}`);
-    } finally {
-      await page.close();
     }
   }
 }

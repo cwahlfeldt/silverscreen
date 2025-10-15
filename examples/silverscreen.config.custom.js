@@ -42,6 +42,9 @@ export default {
 
   outputDir: 'custom-screenshots',
 
+  // Capture in multiple browsers
+  browsers: ['chromium', 'firefox'],
+
   // Custom breakpoints
   breakpoints: {
     'phone': 375,
@@ -56,9 +59,9 @@ export default {
     quality: 85,
   },
 
-  // Browser options
-  browser: {
-    headless: 'new',
+  // Browser launch options
+  browserOptions: {
+    headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   },
 };

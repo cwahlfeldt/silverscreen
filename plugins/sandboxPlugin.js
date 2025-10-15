@@ -13,14 +13,11 @@ export class SandboxPlugin extends BasePlugin {
       if (sandboxButton) {
         this.log("Found sandbox button, clicking...");
 
-        // Click the button
-        await sandboxButton.click();
-
-        // Wait for navigation to complete
-        await page.waitForNavigation({
-          waitUntil: "networkidle2",
-          timeout: 10000,
-        });
+        // Click the button and wait for navigation
+        await Promise.all([
+          page.waitForLoadState("networkidle", { timeout: 10000 }),
+          sandboxButton.click(),
+        ]);
 
         this.log("Sandbox button clicked, page loaded");
         return true; // Indicate that we handled something
