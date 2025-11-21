@@ -48,7 +48,7 @@ function BreakpointSection({
 }: BreakpointSectionProps) {
   const scrollContainersRef = useRef<HTMLDivElement[]>([]);
   const scrollingFromIndexRef = useRef<number | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Synchronized scroll handler
   const handleScroll = useCallback((index: number) => {
@@ -153,7 +153,14 @@ function BreakpointSection({
                 </span>
               </div>
               <p className="mt-1 text-gray-600 text-sm">
-                {screenshot.pageName}
+                <a
+                  href={screenshot.pageName}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                >
+                  {screenshot.pageName}
+                </a>
               </p>
             </div>
           </div>

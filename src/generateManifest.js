@@ -46,11 +46,19 @@ export function generateManifest(screenshotsDir = "screenshots", outputPath = "v
     for (const page of pages) {
       const pagePath = path.join(browserPath, page);
 
+      // Read URL from metadata file if it exists
+      const urlFilePath = path.join(pagePath, '.url');
+      let pageUrl = null;
+      if (fs.existsSync(urlFilePath)) {
+        pageUrl = fs.readFileSync(urlFilePath, 'utf-8').trim();
+      }
+
       // Store page info
       if (!pagesMap.has(page)) {
         pagesMap.set(page, {
           id: page,
           name: page.replace(/_/g, ' / ').replace(/-/g, '.'),
+          url: pageUrl,
           browsers: []
         });
       }
@@ -58,6 +66,10 @@ export function generateManifest(screenshotsDir = "screenshots", outputPath = "v
       const pageInfo = pagesMap.get(page);
       if (!pageInfo.browsers.includes(browser)) {
         pageInfo.browsers.push(browser);
+      }
+      // Update URL if we found it and it wasn't set yet
+      if (pageUrl && !pageInfo.url) {
+        pageInfo.url = pageUrl;
       }
 
       // Read screenshot files

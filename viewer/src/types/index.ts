@@ -12,6 +12,7 @@ export type Screenshot = {
 export type PageInfo = {
   id: string;
   name: string;
+  url: string | null;
   browsers: string[];
 }
 

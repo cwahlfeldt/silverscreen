@@ -147,6 +147,12 @@ class Screenshotter {
           fs.mkdirSync(browserDirPath, { recursive: true });
         }
 
+        // Save URL metadata for this page (once per page directory)
+        const metadataPath = path.join(outputDir, browserName, pageDir, '.url');
+        if (!fs.existsSync(metadataPath)) {
+          fs.writeFileSync(metadataPath, url);
+        }
+
         for (const [breakpointName, width] of Object.entries(this.config.breakpoints)) {
           await page.setViewportSize({
             width: width,

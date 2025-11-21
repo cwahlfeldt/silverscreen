@@ -31,14 +31,33 @@ export default function Header({
     }
   };
 
+  const currentPageUrl = selectedPage ? manifest.pages[selectedPage]?.url : null;
+
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="container mx-auto px-4 py-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Silverscreen Viewer</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Compare screenshots across browsers and breakpoints
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Silverscreen Viewer</h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Compare screenshots across browsers and breakpoints
+              </p>
+            </div>
+            {currentPageUrl && (
+              <a
+                href={currentPageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24" stroke="currentColor">
+                  <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                </svg>
+                Visit Page
+              </a>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

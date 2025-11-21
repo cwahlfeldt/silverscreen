@@ -12,25 +12,12 @@ import { SandboxPlugin } from "./plugins/sandboxPlugin.js";
 export default {
   // URLs to capture (optional - can also use CLI argument with text file)
   urls: [
-    "https://dev-otm-2025.pantheonsite.io/",
-    "https://dev-otm-2025.pantheonsite.io/researchers-innovators/understanding-intellectual-property",
-    "https://dev-otm-2025.pantheonsite.io/researchers-innovators/report-your-innovation",
-    "https://dev-otm-2025.pantheonsite.io/researchers-innovators/transferring-research-beyond-academia",
-    "https://dev-otm-2025.pantheonsite.io/researchers-innovators/resources-support-innovators",
-    "https://dev-otm-2025.pantheonsite.io/researchers-innovators/request-thesis-withhold",
-    "https://dev-otm-2025.pantheonsite.io/browse-technologies-startups",
-    "https://dev-otm-2025.pantheonsite.io/browse-technologies-startups/technologies",
-    "https://dev-otm-2025.pantheonsite.io/browse-technologies-startups/healthcare-pipeline",
-    "https://dev-otm-2025.pantheonsite.io/browse-technologies-startups/startups",
-    "https://dev-otm-2025.pantheonsite.io/industry-partners/licensee-reporting-center",
-    "https://dev-otm-2025.pantheonsite.io/industry-partners/engage-our-research-enterprise",
-    "https://dev-otm-2025.pantheonsite.io/industry-partners/request-permission-use-copyrighted-material",
-    "https://dev-otm-2025.pantheonsite.io/browse-technologies-startups/technologies",
-    "https://dev-otm-2025.pantheonsite.io/about",
-    "https://dev-otm-2025.pantheonsite.io/about/our-team",
-    "https://dev-otm-2025.pantheonsite.io/about/events",
-    "https://dev-otm-2025.pantheonsite.io/browse-technologies-startups/technologies/122/distributed-feedback-laser-biosensortf07135",
-    "https://dev-otm-2025.pantheonsite.io/about/contact",
+    "https://mdburke.web.illinois.edu/",
+    "https://mdburke.web.illinois.edu/about",
+    "https://mdburke.web.illinois.edu/publications",
+    "https://mdburke.web.illinois.edu/team/graduate",
+    "https://mdburke.web.illinois.edu/team/staff",
+    "https://mdburke.web.illinois.edu/contact",
   ],
 
   // Plugins to load (executed in order before each screenshot)

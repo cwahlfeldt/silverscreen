@@ -12,6 +12,7 @@ export interface Screenshot {
 export interface PageInfo {
   id: string;
   name: string;
+  url: string | null;
   browsers: string[];
 }
 
