@@ -7,25 +7,30 @@ export class SandboxPlugin extends BasePlugin {
 
   async handle(page) {
     try {
-      // Check if sandbox button exists
-      const sandboxButton = await page.$(".pds-button");
+      // Wait for the modal to appear (it shows on a delay after page load)
+      await page.waitForSelector(".micromodalcontainer", {
+        state: "visible",
+        timeout: 15000,
+      });
 
-      if (sandboxButton) {
-        this.log("Found sandbox button, clicking...");
+      this.log("Found modal, removing from DOM...");
 
-        // Click the button and wait for navigation
-        await Promise.all([
-          page.waitForLoadState("networkidle", { timeout: 10000 }),
-          sandboxButton.click(),
-        ]);
+      // Remove the modal and prevent it from reappearing
+      await page.evaluate(() => {
+        document.querySelectorAll(".micromodalcontainer, .micromodaloverlay, .micromodal-slide").forEach(el => el.remove());
 
-        this.log("Sandbox button clicked, page loaded");
-        return true; // Indicate that we handled something
-      }
+        // Add style to keep it hidden if the site tries to re-inject it
+        const style = document.createElement("style");
+        style.textContent = ".micromodalcontainer, .micromodaloverlay, .micromodal-slide { display: none !important; }";
+        document.head.appendChild(style);
+      });
+
+      this.log("Modal removed");
+      return true;
     } catch (error) {
-      this.log(`No sandbox button found or click failed: ${error.message}`);
+      this.log(`No modal appeared: ${error.message}`);
     }
 
-    return false; // Nothing was handled
+    return false;
   }
 }

@@ -1,6 +1,4 @@
-// const { CookiePlugin, SandboxPlugin } = require("./plugins");
-import { CookiePlugin } from "./plugins/cookiePlugin.js";
-import { SandboxPlugin } from "./plugins/sandboxPlugin.js";
+// import { CookiePlugin } from "./plugins/cookiePlugin.js";
 
 /**
  * Silverscreen Configuration File
@@ -12,16 +10,27 @@ import { SandboxPlugin } from "./plugins/sandboxPlugin.js";
 export default {
   // URLs to capture (optional - can also use CLI argument with text file)
   urls: [
-    "https://mdburke.web.illinois.edu/",
-    "https://mdburke.web.illinois.edu/about",
-    "https://mdburke.web.illinois.edu/publications",
-    "https://mdburke.web.illinois.edu/team/graduate",
-    "https://mdburke.web.illinois.edu/team/staff",
-    "https://mdburke.web.illinois.edu/contact",
+    "https://adventistreview.ddev.site/",
+    "https://adventistreview.ddev.site/world-news/",
+    "https://adventistreview.ddev.site/theology/",
+    "https://adventistreview.ddev.site/digital-media/",
+    "https://adventistreview.ddev.site/world/asia/from-iran-to-gods-ultimate-freedom/",
+    "https://adventistreview.ddev.site/the-life-of-faith/hello-again-bill/",
+    "https://adventistreview.ddev.site/world/north-america/how-a-runaway-truck-led-me-to-christ/",
+    "https://adventistreview.ddev.site/theology/sabbath-school/unity-in-christ-despite-conflicts/",
+    "https://adventistreview.ddev.site/growing-faith/keep-on-singing/",
+    "https://adventistreview.ddev.site/lifestyle/arts-culture/culture-arts-culture/i-cannot-hate-any-man/",
+    "https://adventistreview.ddev.site/world/africa/first-ever-open-heart-surgery-in-malawi-offers-hope-for-millions-of-cardiac-patients/",
+    "https://adventistreview.ddev.site/category/lifestyle/arts-culture/",
+    "https://adventistreview.ddev.site/category/lifestyle/arts-culture/culture-arts-culture/",
+    "https://adventistreview.ddev.site/?s=Culture&asl_active=1&p_asl_data=1&customset[]=world-magazines&customset[]=review-magazines&customset[]=post&asl_gen[]=excerpt&asl_gen[]=content&asl_gen[]=title&qtranslate_lang=0&filters_initial=1&filters_changed=0",
+    "https://adventistreview.ddev.site/world-magazine/",
+    "https://adventistreview.ddev.site/review-magazine/",
+    "https://adventistreview.ddev.site/review-magazine/january-2026/",
   ],
 
   // Plugins to load (executed in order before each screenshot)
-  plugins: [new SandboxPlugin(), new CookiePlugin()],
+  // plugins: [new CookiePlugin()],
 
   // Default output directory
   outputDir: "screenshots",
@@ -37,6 +46,16 @@ export default {
     // Add any other Playwright launch options here
     // args: ['--no-sandbox', '--disable-setuid-sandbox'],
   },
+
+  // Delay in ms before taking screenshots (wait for images/assets to load)
+  delay: 2000,
+
+  // CSS selectors to hide with display: none !important
+  hideSelectors: [
+    ".micromodalcontainer",
+    ".micromodaloverlay",
+    ".micromodal-slide",
+  ],
 
   // Screenshot configuration
   screenshot: {

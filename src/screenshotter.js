@@ -38,6 +38,8 @@ class Screenshotter {
         browserOptions: config.browserOptions || config.browser || { headless: true },
         screenshot: config.screenshot || { fullPage: true },
         breakpoints: config.breakpoints || DEFAULT_BREAKPOINTS,
+        hideSelectors: config.hideSelectors || [],
+        delay: config.delay || 0,
       };
     }
 
@@ -138,8 +140,34 @@ class Screenshotter {
           timeout: 30000,
         });
 
+        // Inject CSS to hide configured selectors
+        if (this.config.hideSelectors.length > 0) {
+          await page.addStyleTag({
+            content: this.config.hideSelectors
+              .map((s) => `${s} { display: none !important; }`)
+              .join("\n"),
+          });
+        }
+
         // Run all plugins to handle page interactions
         await this.pluginManager.runPlugins(page);
+
+        // Scroll through the page to trigger lazy-loaded images
+        await page.evaluate(async () => {
+          const scrollStep = window.innerHeight;
+          const maxScroll = document.body.scrollHeight;
+          for (let y = 0; y < maxScroll; y += scrollStep) {
+            window.scrollTo(0, y);
+            await new Promise((r) => setTimeout(r, 300));
+          }
+          window.scrollTo(0, 0);
+        });
+
+        // Wait for configured delay (e.g. for images/assets to finish loading)
+        if (this.config.delay > 0) {
+          console.log(`  ⏳ Waiting ${this.config.delay}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, this.config.delay));
+        }
 
         // Create browser-specific directory structure: screenshots/browser/page/
         const browserDirPath = path.join(outputDir, browserName, pageDir);
