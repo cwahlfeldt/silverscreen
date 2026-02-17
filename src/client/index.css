@@ -1,0 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #09090f;
+  color: #f3f4f6;
+  font-family: system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+}
+
+.font-display {
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+}
+
+.glass {
+  background: rgba(17, 17, 27, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.amber-glow {
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.4), 0 0 20px rgba(251, 191, 36, 0.1);
+}
+
+.card-hover {
+  transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(251, 191, 36, 0.25);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-amber {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.animate-fade-in   { animation: fadeIn 200ms ease forwards; }
+.animate-scale-in  { animation: scaleIn 200ms ease forwards; }
+.animate-slide-in  { animation: slideIn 200ms ease forwards; }
+.animate-pulse-amber { animation: pulse-amber 1.5s ease-in-out infinite; }
+
+/* Terminal log scrollbar */
+.terminal-log::-webkit-scrollbar {
+  width: 4px;
+}
+.terminal-log::-webkit-scrollbar-track {
+  background: #09090f;
+}
+.terminal-log::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 2px;
+}
+
+/* Screenshot card scrollbar */
+.screenshot-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+.screenshot-scroll::-webkit-scrollbar-track {
+  background: #09090f;
+}
+.screenshot-scroll::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 2px;
+}

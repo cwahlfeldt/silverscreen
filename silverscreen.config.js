@@ -1,4 +1,4 @@
-// import { CookiePlugin } from "./plugins/cookiePlugin.js";
+// import { CookiePlugin } from "./src/capture/plugins/cookiePlugin.js";
 
 /**
  * Silverscreen Configuration File
