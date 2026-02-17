@@ -12,6 +12,7 @@ import {
   getSessionManifest,
   getSessionScreenshotsPath,
 } from './sessionManager.js';
+import { getProfile, updateProfile } from './profileManager.js';
 import { Screenshotter } from '../capture/screenshotter.js';
 import { loadConfig } from '../capture/configLoader.js';
 
@@ -50,6 +51,24 @@ app.get('/api/config', async (_req, res) => {
 app.put('/api/config', (req, res) => {
   runtimeConfig = req.body;
   res.json({ ok: true });
+});
+
+// --- Profile ---
+app.get('/api/profile', (_req, res) => {
+  try {
+    res.json(getProfile());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/profile', (req, res) => {
+  try {
+    const updated = updateProfile(req.body);
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // --- Sessions ---

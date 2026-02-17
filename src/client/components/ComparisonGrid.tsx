@@ -1,19 +1,12 @@
 import { useRef, useCallback } from 'react';
 import type { Screenshot } from '../types';
+import { BROWSER_COLORS } from '../constants';
 
 interface ComparisonGridProps {
   screenshots: Screenshot[];
   sessionId: string;
   onImageClick: (screenshot: Screenshot) => void;
 }
-
-const BROWSER_PILL: Record<string, string> = {
-  chromium: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  chrome:   'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  firefox:  'bg-orange-500/20 text-orange-300 border-orange-500/30',
-  webkit:   'bg-violet-500/20 text-violet-300 border-violet-500/30',
-  edge:     'bg-cyan-500/20 text-cyan-300 border-cyan-500/30',
-};
 
 export default function ComparisonGrid({ screenshots, sessionId, onImageClick }: ComparisonGridProps) {
   const grouped = screenshots.reduce((acc, s) => {
@@ -111,7 +104,7 @@ function BreakpointSection({ breakpoint, screenshots, sessionId, onImageClick }:
               <div className="px-4 py-3 flex items-center justify-between border-t border-gray-800">
                 <span
                   className={`text-xs font-medium px-2 py-0.5 rounded-full border capitalize ${
-                    BROWSER_PILL[screenshot.browser] ?? 'bg-gray-800 text-gray-400 border-gray-700'
+                    BROWSER_COLORS[screenshot.browser] ?? 'bg-gray-800 text-gray-400 border-gray-700'
                   }`}
                 >
                   {screenshot.browser}

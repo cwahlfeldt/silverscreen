@@ -4,210 +4,119 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Silverscreen is a CLI tool for capturing responsive website screenshots using Playwright. It processes multiple URLs (from config file or text file) and captures screenshots at different breakpoints across multiple browsers (Chromium, Firefox, WebKit, Edge).
+Silverscreen is a unified web application for capturing responsive website screenshots and comparing them side by side. It combines an Express API server, a React frontend, and a Playwright screenshot engine into a single package.
 
 ## Commands
 
-### Development Commands
-- `npm start <urls-file>` - Run the CLI tool with a URLs file
-- `npm test` - No tests currently configured
-
-### CLI Usage
-- `node bin/silverscreen.js` - Run with URLs from config file
-- `node bin/silverscreen.js <urls-file>` - Run with URLs from text file
-- `silverscreen -o <output-dir>` - If installed globally (uses config URLs)
-- `silverscreen <urls-file> -o <output-dir>` - With text file and custom output
-
-### Configuration
-- Place a `silverscreen.config.js` file in your project root to customize behavior
-- Define URLs directly in config or provide a text file via CLI
-- CLI will automatically detect and load the config file
-- CLI options override config file settings
+- `npm run dev` — Start Express server (port 3001) + Vite dev server concurrently
+- `npm start` — Start Express server serving the built frontend (production)
+- `npm run build` — Build the React frontend to `dist/`
+- `npm run capture` — Headless CLI capture (alias for `node bin/silverscreen.js capture`)
 
 ## Architecture
 
 ### Core Components
 
-1. **CLI Entry Point** (`bin/silverscreen.js`)
-   - Uses Commander.js for argument parsing
-   - Handles file input validation and error reporting
-   - Orchestrates the screenshot capture workflow
+1. **Express Server** (`src/server/index.js`)
+   - Serves the built React app from `dist/` in production
+   - Exposes REST API routes for sessions and capture
+   - SSE endpoint (`GET /api/capture/status`) streams live progress during capture
+   - In dev, Vite proxies `/api` to this server (port 3001)
 
-2. **URL Reader** (`src/urlReader.js`)
-   - Reads and validates URLs from text files (optional)
-   - Filters out invalid URLs using URL constructor validation
-   - Returns array of valid URLs for processing
-   - URLs can also be defined directly in config file
+2. **Session Manager** (`src/server/sessionManager.js`)
+   - Creates, lists, reads, and deletes sessions
+   - Each session is a directory under `data/sessions/<id>/` containing `session.json`, `manifest.json`, and `screenshots/`
+   - `data/sessions.json` is a lightweight index of all sessions
 
-3. **Screenshotter** (`src/screenshotter.js`)
-   - Main screenshot capture logic using Playwright
-   - Manages multiple browser instances (Chromium, Firefox, WebKit, Edge)
-   - Handles viewport sizing for different breakpoints
-   - Organizes output by browser: `screenshots/browser-name/site-page/breakpoint.png`
-   - Integrates with PluginManager for extensible page interactions
+3. **Screenshotter** (`src/capture/screenshotter.js`)
+   - Extends `EventEmitter` — emits `progress` and `error` events used by the SSE endpoint
+   - Launches Playwright browsers, captures screenshots at each breakpoint, runs plugins
+   - Writes screenshots to a caller-supplied output directory
 
-4. **Plugin System** (`src/plugins/`)
-   - **BasePlugin** - Abstract base class for all plugins
-   - **PluginManager** - Orchestrates plugin execution
-   - **Built-in Plugins**:
-     - `CookiePlugin` - Dismisses cookie banners (`.ila-cookieb__close-button`)
-     - `SandboxPlugin` - Clicks sandbox buttons (`.pds-button`)
-   - Plugins are opt-in via config file
+4. **Plugin System** (`src/capture/plugins/`)
+   - `BasePlugin` — extend this, implement `async handle(page)`
+   - `PluginManager` — runs all plugins in order before each screenshot
+   - Built-ins: `CookiePlugin`, `SandboxPlugin`
+   - Loaded via `plugins` array in `silverscreen.config.js`
 
-5. **Configuration System** (`src/configLoader.js`)
-   - Loads `silverscreen.config.js` from project root
-   - Provides defaults for all settings
-   - Supports plugins, breakpoints, browser options, and screenshot settings
+5. **React Frontend** (`src/client/`)
+   - `App.tsx` — session state, manifest fetching, layout
+   - `SessionSidebar.tsx` — lists sessions, handles selection and deletion
+   - `CapturePanel.tsx` — capture form, POSTs to `/api/capture`, reads SSE progress
+   - `ComparisonGrid.tsx` — screenshot grid grouped by breakpoint, synced scroll
+   - `ImageModal.tsx` — full-screen image viewer with download
+   - `Header.tsx` — pill-shaped filter controls (page, browser, breakpoint)
 
-### Key Design Patterns
+6. **CLI Entry Point** (`bin/silverscreen.js`)
+   - `silverscreen serve` (default) — starts the Express server
+   - `silverscreen capture [urls-file]` — headless capture, saves to a session in `data/`
 
-- **Configuration-First Architecture**: Flexible, file-based configuration
-  - `silverscreen.config.js` in project root for customization
-  - Supports plugins, browsers, breakpoints, browser options, and screenshot settings
-  - CLI options override config file settings
-- **Multi-Browser Support**: Capture screenshots across multiple browsers
-  - Supported browsers: Chromium, Chrome, Firefox, WebKit, Edge
-  - Configurable via `browsers` array in config
-  - Defaults to Chromium only if not specified
-- **Plugin Architecture**: Extensible system for handling site-specific interactions
-  - Plugins extend BasePlugin and implement `handle(page)` method
-  - Zero plugins loaded by default - pure screenshot capture out of the box
-  - Users opt-in to plugins via config file
-- **Breakpoint Configuration**: Predefined responsive breakpoints (390px, 768px, 1440px, 1920px)
-- **File Organization**: Screenshots organized by browser, then page: `screenshots/browser/page/breakpoint.png`
-- **Error Handling**: Graceful error handling with console logging per browser
-- **Browser Management**: Multiple browser instances launched concurrently, each with individual pages per URL
+### API Routes
 
-### Dependencies
-
-- **playwright**: Web scraping and screenshot capture (supports Chromium, Firefox, WebKit)
-- **commander**: CLI argument parsing and command structure
-- **Node.js built-ins**: fs, path for file operations
+| Method | Route | Description |
+|--------|-------|-------------|
+| GET | `/api/sessions` | List all sessions |
+| GET | `/api/sessions/:id` | Get session metadata |
+| DELETE | `/api/sessions/:id` | Delete session and all files |
+| GET | `/api/sessions/:id/manifest` | Session manifest JSON |
+| GET | `/api/sessions/:id/screenshots/*` | Serve screenshot files |
+| POST | `/api/capture` | Start a capture run, returns `{ sessionId }` |
+| GET | `/api/capture/status` | SSE stream of capture progress events |
+| GET | `/api/config` | Current `silverscreen.config.js` values |
+| PUT | `/api/config` | Runtime config overrides (in-memory) |
 
 ### File Structure
 
 ```
-bin/silverscreen.js                        - CLI entry point
+bin/silverscreen.js              — CLI entry point (serve + capture subcommands)
 src/
-  urlReader.js                             - URL file processing
-  screenshotter.js                         - Screenshot capture logic
-  configLoader.js                          - Configuration file loader
-  plugins/
-    index.js                               - Plugin system exports
-    basePlugin.js                          - Base plugin class
-    cookiePlugin.js                        - Cookie banner dismissal
-    sandboxPlugin.js                       - Sandbox button handling
-examples/
-  customPlugin.js                          - Example custom plugin (legacy)
-  silverscreen.config.js                   - Full config example with plugins
-  silverscreen.config.minimal.js           - Minimal config example
-  silverscreen.config.custom.js            - Custom plugin example
-package.json                               - Node.js project configuration
+  server/
+    index.js                     — Express app, API routes, SSE
+    sessionManager.js            — Session CRUD, manifest generation
+  capture/
+    screenshotter.js             — Playwright capture logic (EventEmitter)
+    urlReader.js                 — Parse URLs from text file
+    configLoader.js              — Load silverscreen.config.js
+    generateManifest.js          — Scan screenshots dir, write manifest.json
+    plugins/
+      index.js                   — PluginManager + re-exports
+      basePlugin.js              — Base class
+      cookiePlugin.js            — Cookie banner dismissal
+      sandboxPlugin.js           — Modal overlay removal
+  client/
+    main.tsx                     — React entry point
+    App.tsx                      — Root component, session-aware layout
+    types.ts                     — TypeScript interfaces
+    index.css                    — Tailwind + dark theme + animations
+    components/
+      Header.tsx
+      SessionSidebar.tsx
+      CapturePanel.tsx
+      ComparisonGrid.tsx
+      ImageModal.tsx
+data/                            — Runtime session storage (gitignored)
+silverscreen.config.js           — Project config (URLs, browsers, breakpoints, plugins)
+vite.config.ts                   — React + Tailwind plugins, /api proxy to :3001
 ```
 
-## Configuration
+### Session Data Layout
 
-### Basic Configuration
-
-Create a `silverscreen.config.js` file in your project root:
-
-```javascript
-export default {
-  // URLs to capture (optional - can also use CLI argument with text file)
-  urls: [
-    'https://example.com',
-    'https://example.com/about',
-    'https://example.com/contact',
-  ],
-
-  // Plugins to load
-  plugins: [],
-
-  // Output directory
-  outputDir: 'screenshots',
-
-  // Browsers to use for screenshots
-  // Supported: 'chromium', 'chrome', 'firefox', 'webkit', 'edge'
-  // Output structure: screenshots/browser-name/site-page/breakpoint.png
-  browsers: ['chromium', 'firefox', 'webkit'],
-
-  // Browser launch options (applies to all browsers)
-  browserOptions: {
-    headless: true,
-  },
-
-  // Screenshot options
-  screenshot: {
-    fullPage: true,
-    // type: 'png', // or 'jpeg', 'webp'
-    // quality: 90, // for jpeg/webp only
-  },
-
-  // Custom breakpoints (optional)
-  breakpoints: {
-    'mobile-390px': 390,
-    'tablet-768px': 768,
-    'desktop-1440px': 1440,
-    'large-1920px': 1920,
-  },
-};
+```
+data/
+├── sessions.json                          — index: [{ id, name, createdAt, urlCount, browsers }]
+└── sessions/
+    └── <slug>-<timestamp>/
+        ├── session.json                   — full metadata
+        ├── manifest.json                  — screenshot index for the viewer
+        └── screenshots/
+            ├── chromium/<page>/
+            ├── firefox/<page>/
+            └── webkit/<page>/
 ```
 
-### Using Built-in Plugins
+### Design
 
-Add plugins to your config file:
-
-```javascript
-import { CookiePlugin, SandboxPlugin } from 'silverscreen/src/plugins/index.js';
-
-export default {
-  plugins: [
-    new CookiePlugin(),
-    new SandboxPlugin(),
-  ],
-  outputDir: 'screenshots',
-};
-```
-
-### Creating Custom Plugins
-
-Extend BasePlugin and add to your config:
-
-```javascript
-import { BasePlugin } from 'silverscreen/src/plugins/basePlugin.js';
-import { CookiePlugin } from 'silverscreen/src/plugins/index.js';
-
-class MyModalPlugin extends BasePlugin {
-  constructor() {
-    super('Modal Closer');
-  }
-
-  async handle(page) {
-    try {
-      const modal = await page.$('[data-modal-close]');
-      if (modal) {
-        this.log('Closing modal...');
-        await modal.click();
-        return true;
-      }
-    } catch (error) {
-      this.log(`Error: ${error.message}`);
-    }
-    return false;
-  }
-}
-
-export default {
-  plugins: [
-    new CookiePlugin(),
-    new MyModalPlugin(),
-  ],
-};
-```
-
-### Example Configurations
-
-See the `examples/` directory for complete configuration examples:
-- `silverscreen.config.js` - Full example with Cookie and Sandbox plugins
-- `silverscreen.config.minimal.js` - Minimal configuration with no plugins
-- `silverscreen.config.custom.js` - Custom plugin example with JPEG output
+- Dark cinematic theme: `#09090f` background, amber (`#fbbf24`) accents, violet secondary
+- Font: Space Grotesk (display), system UI (body)
+- All styling via Tailwind utility classes + custom keyframe animations in `index.css`
+- Dark mode only — no toggle

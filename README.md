@@ -1,6 +1,6 @@
 # Silverscreen
 
-A CLI tool for capturing responsive website screenshots across multiple browsers using Playwright.
+Capture responsive website screenshots across multiple browsers and compare them side by side in a dark, cinematic web UI.
 
 ## Installation
 
@@ -8,9 +8,52 @@ A CLI tool for capturing responsive website screenshots across multiple browsers
 npm install
 ```
 
-## Quick Start
+## Usage
 
-1. Create `silverscreen.config.js`:
+### Web UI (recommended)
+
+Start the server and open the browser interface:
+
+```bash
+npm start
+# → http://localhost:3001
+```
+
+During development, run the Express server and Vite dev server together:
+
+```bash
+npm run dev
+# → Vite at http://localhost:5173 (proxies /api to :3001)
+```
+
+From the UI you can:
+- Start a new capture (name it, set URLs, choose browsers)
+- Watch live progress as screenshots are taken
+- Browse all past sessions in the sidebar
+- Compare screenshots side by side with synced scrolling
+- Filter by page, browser, and breakpoint
+- Open full-size in a modal and download
+
+### Headless CLI
+
+Run a capture without starting the server:
+
+```bash
+node bin/silverscreen.js capture
+# Uses URLs from silverscreen.config.js
+
+node bin/silverscreen.js capture urls.txt
+# Uses URLs from a text file (one per line)
+
+node bin/silverscreen.js capture -n "My Session"
+# Custom session name
+```
+
+Sessions captured via CLI are stored the same way and appear in the UI next time you run `npm start`.
+
+## Configuration
+
+Place a `silverscreen.config.js` in the project root:
 
 ```javascript
 export default {
@@ -18,97 +61,104 @@ export default {
     'https://example.com',
     'https://example.com/about',
   ],
+
   browsers: ['chromium', 'firefox', 'webkit'],
-  outputDir: 'screenshots',
+
+  breakpoints: {
+    'mobile-390px': 390,
+    'tablet-768px': 768,
+    'desktop-1440px': 1440,
+    'large-1920px': 1920,
+  },
+
+  browserOptions: {
+    headless: true,
+  },
+
+  screenshot: {
+    fullPage: true,
+  },
+
+  delay: 0,           // ms to wait before taking each screenshot
+  hideSelectors: [],  // CSS selectors to hide before capture
+  plugins: [],        // see Plugins below
 };
 ```
 
-2. Run:
+| Option           | Type   | Default              | Description                                        |
+| ---------------- | ------ | -------------------- | -------------------------------------------------- |
+| `urls`           | array  | `[]`                 | URLs to capture                                    |
+| `browsers`       | array  | `['chromium']`       | `chromium`, `chrome`, `firefox`, `webkit`, `edge`  |
+| `breakpoints`    | object | 390/768/1440/1920px  | Viewport widths to capture                         |
+| `browserOptions` | object | `{ headless: true }` | Playwright launch options                          |
+| `screenshot`     | object | `{ fullPage: true }` | Playwright screenshot options                      |
+| `delay`          | number | `0`                  | Extra wait (ms) before capturing                   |
+| `hideSelectors`  | array  | `[]`                 | CSS selectors to hide with `display: none`         |
+| `plugins`        | array  | `[]`                 | Plugin instances to run before each screenshot     |
 
-```bash
-node bin/silverscreen.js
+## Plugins
+
+Plugins let you interact with the page before screenshots are taken (dismiss modals, accept cookies, etc.).
+
+```javascript
+import { CookiePlugin } from './src/capture/plugins/index.js';
+
+export default {
+  plugins: [new CookiePlugin()],
+};
 ```
 
-## Output
+### Built-in plugins
 
-Screenshots are organized by browser:
+- **`CookiePlugin`** — dismisses `.ila-cookieb__close-button` cookie banners
+- **`SandboxPlugin`** — removes `.micromodalcontainer` modal overlays
 
-```
-screenshots/
-├── chromium/
-│   └── example-com/
-│       ├── mobile-390px_*.png
-│       ├── tablet-768px_*.png
-│       ├── desktop-1440px_*.png
-│       └── large-1920px_*.png
-├── firefox/
-└── webkit/
-```
+### Custom plugins
 
-## Configuration
+```javascript
+import { BasePlugin } from './src/capture/plugins/basePlugin.js';
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `urls` | array | `[]` | URLs to capture |
-| `browsers` | array | `['chromium']` | Browsers: `chromium`, `firefox`, `webkit`, `edge` |
-| `outputDir` | string | `'screenshots'` | Output directory |
-| `breakpoints` | object | See defaults | Custom viewport widths |
-| `browserOptions` | object | `{ headless: true }` | Playwright launch options |
-| `screenshot` | object | `{ fullPage: true }` | Screenshot options |
-| `plugins` | array | `[]` | Custom plugins |
+class MyPlugin extends BasePlugin {
+  constructor() {
+    super('My Plugin');
+  }
 
-## CLI Usage
-
-```bash
-# Use URLs from config
-node bin/silverscreen.js
-
-# Use URLs from text file
-node bin/silverscreen.js urls.txt
-
-# Custom output directory
-node bin/silverscreen.js -o output/
+  async handle(page) {
+    const btn = await page.$('[data-dismiss]');
+    if (btn) {
+      await btn.click();
+      return true;
+    }
+    return false;
+  }
+}
 ```
 
-## Screenshot Viewer
+## Session data
 
-Silverscreen automatically generates a static comparison viewer that lets you compare screenshots side-by-side across browsers and breakpoints.
+Every capture creates a named session stored in `data/` (gitignored):
 
-### Using the Viewer
-
-1. **Capture Screenshots** - Run silverscreen as normal:
-```bash
-node bin/silverscreen.js
+```
+data/
+├── sessions.json
+└── sessions/
+    └── example-com-1739836800000/
+        ├── session.json
+        ├── manifest.json
+        └── screenshots/
+            ├── chromium/
+            ├── firefox/
+            └── webkit/
 ```
 
-2. **Start Viewer** - The manifest is generated automatically:
-```bash
-npm run viewer:dev
-```
+## npm scripts
 
-3. **Build Static Site**:
-```bash
-npm run viewer:build
-```
-
-The built viewer will be in `viewer/dist/` and can be deployed to any static hosting service.
-
-### Viewer Features
-
-- **Side-by-side Comparison** - Compare the same page across multiple browsers
-- **Breakpoint Filtering** - View all breakpoints or filter to specific sizes
-- **Browser Selection** - Toggle which browsers to display
-- **Click to Enlarge** - Full-screen modal view with download option
-- **Responsive Design** - Works on mobile, tablet, and desktop
-- **Static Export** - Self-contained site with all screenshots embedded
-
-### Manual Manifest Generation
-
-If you need to regenerate the viewer manifest without capturing new screenshots:
-
-```bash
-npm run viewer:generate
-```
+| Script          | Description                                      |
+| --------------- | ------------------------------------------------ |
+| `npm run dev`   | Express + Vite dev server (hot reload)           |
+| `npm start`     | Express server serving the built frontend        |
+| `npm run build` | Build the React frontend to `dist/`              |
+| `npm run capture` | Headless CLI capture (alias for `node bin/silverscreen.js capture`) |
 
 ## License
 

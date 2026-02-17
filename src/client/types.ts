@@ -53,3 +53,19 @@ export interface CaptureProgressEvent {
   path?: string;
   message?: string;
 }
+
+export interface CaptureState {
+  isCapturing: boolean;
+  sessionId: string | null;
+  progress: number;
+  total: number;
+  log: CaptureProgressEvent[];
+}
+
+export interface Profile {
+  browsers: string[];
+  breakpoints: Record<string, number>;
+  delay: number;
+  hideSelectors: string[];
+  screenshot: { fullPage?: boolean };
+}

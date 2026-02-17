@@ -1,10 +1,13 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { Manifest, Screenshot, Session } from './types';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import type { Manifest, Screenshot, Session, CaptureState, CaptureProgressEvent } from './types';
 import Header from './components/Header';
 import ComparisonGrid from './components/ComparisonGrid';
 import ImageModal from './components/ImageModal';
 import SessionSidebar from './components/SessionSidebar';
 import CapturePanel from './components/CapturePanel';
+import Dashboard from './components/Dashboard';
+
+type View = 'dashboard' | 'session';
 
 function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -12,6 +15,12 @@ function App() {
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [loading, setLoading] = useState(false);
   const [showCapture, setShowCapture] = useState(false);
+  const [currentView, setCurrentView] = useState<View>('dashboard');
+
+  // Sidebar collapse (persisted)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('silverscreen:sidebar-collapsed') === 'true';
+  });
 
   // Filter states
   const [selectedPage, setSelectedPage] = useState<string | null>(null);
@@ -20,6 +29,21 @@ function App() {
 
   // Modal state
   const [selectedImage, setSelectedImage] = useState<Screenshot | null>(null);
+
+  // Capture state (lifted from CapturePanel)
+  const [captureState, setCaptureState] = useState<CaptureState>({
+    isCapturing: false,
+    sessionId: null,
+    progress: 0,
+    total: 0,
+    log: [],
+  });
+  const eventSourceRef = useRef<EventSource | null>(null);
+
+  // Persist sidebar state
+  useEffect(() => {
+    localStorage.setItem('silverscreen:sidebar-collapsed', String(sidebarCollapsed));
+  }, [sidebarCollapsed]);
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -63,16 +87,12 @@ function App() {
   }, []);
 
   useEffect(() => {
-    fetchSessions().then((data) => {
-      if (data.length > 0) {
-        setSelectedSessionId(data[0].id);
-        loadSession(data[0].id);
-      }
-    });
-  }, [fetchSessions, loadSession]);
+    fetchSessions();
+  }, [fetchSessions]);
 
   function handleSelectSession(id: string) {
     setSelectedSessionId(id);
+    setCurrentView('session');
     loadSession(id);
   }
 
@@ -86,15 +106,100 @@ function App() {
       } else {
         setSelectedSessionId(null);
         setManifest(null);
+        setCurrentView('dashboard');
       }
     }
   }
 
-  async function handleCaptureComplete(sessionId: string) {
-    await fetchSessions();
-    setSelectedSessionId(sessionId);
-    loadSession(sessionId);
+  function handleLogoClick() {
+    setCurrentView('dashboard');
+    setSelectedSessionId(null);
+    setManifest(null);
+  }
+
+  // Start capture — lifted from CapturePanel
+  async function handleStartCapture(payload: {
+    name: string;
+    urls: string[];
+    browsers: string[];
+    breakpoints?: Record<string, number>;
+  }) {
+    const bpCount = Object.keys(payload.breakpoints ?? {}).length;
+    const computedTotal = payload.urls.length * payload.browsers.length * bpCount;
+
+    setCaptureState({
+      isCapturing: true,
+      sessionId: null,
+      progress: 0,
+      total: computedTotal,
+      log: [],
+    });
     setShowCapture(false);
+
+    // Open SSE stream
+    const es = new EventSource('/api/capture/status');
+    eventSourceRef.current = es;
+
+    es.onmessage = (e) => {
+      const event: CaptureProgressEvent = JSON.parse(e.data);
+
+      setCaptureState((prev) => {
+        const newLog = [...prev.log, event];
+
+        if (event.type === 'start') {
+          return { ...prev, total: event.total ?? prev.total, sessionId: event.sessionId ?? prev.sessionId, log: newLog };
+        }
+        if (event.type === 'progress') {
+          return { ...prev, progress: prev.progress + 1, log: newLog };
+        }
+        if (event.type === 'complete') {
+          es.close();
+          if (event.sessionId) {
+            fetchSessions().then(() => {
+              setSelectedSessionId(event.sessionId!);
+              setCurrentView('session');
+              loadSession(event.sessionId!);
+            });
+          }
+          return { ...prev, isCapturing: false, log: newLog };
+        }
+        if (event.type === 'error') {
+          return { ...prev, log: newLog };
+        }
+        return prev;
+      });
+    };
+
+    es.onerror = () => {
+      es.close();
+      setCaptureState((prev) => ({ ...prev, isCapturing: false }));
+    };
+
+    // POST to start capture
+    try {
+      const res = await fetch('/api/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        setCaptureState((prev) => ({
+          ...prev,
+          isCapturing: false,
+          log: [...prev.log, { type: 'error', message: err.error }],
+        }));
+        es.close();
+      }
+    } catch (err) {
+      setCaptureState((prev) => ({
+        ...prev,
+        isCapturing: false,
+        log: [...prev.log, { type: 'error', message: String(err) }],
+      }));
+      es.close();
+    }
   }
 
   // Filtered screenshots
@@ -118,7 +223,7 @@ function App() {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <Header
-        manifest={manifest}
+        manifest={currentView === 'session' ? manifest : null}
         selectedPage={selectedPage}
         selectedBrowsers={selectedBrowsers}
         selectedBreakpoint={selectedBreakpoint}
@@ -127,7 +232,9 @@ function App() {
         onBrowsersChange={setSelectedBrowsers}
         onBreakpointChange={setSelectedBreakpoint}
         onNewCapture={() => setShowCapture(true)}
-        sessionName={selectedSession?.name}
+        onLogoClick={handleLogoClick}
+        sessionName={currentView === 'session' ? selectedSession?.name : undefined}
+        captureState={captureState}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -135,6 +242,8 @@ function App() {
         <SessionSidebar
           sessions={sessions}
           selectedSessionId={selectedSessionId}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
           onSelectSession={handleSelectSession}
           onDeleteSession={handleDeleteSession}
           onNewCapture={() => setShowCapture(true)}
@@ -142,31 +251,23 @@ function App() {
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto px-6 py-8">
-          {loading ? (
+          {currentView === 'dashboard' ? (
+            <Dashboard
+              sessions={sessions}
+              onSelectSession={handleSelectSession}
+              onNewCapture={() => setShowCapture(true)}
+            />
+          ) : loading ? (
             <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in">
               <div className="text-amber-400 text-4xl mb-4 animate-pulse-amber">◉</div>
               <div className="text-gray-400 text-sm">Loading session...</div>
-            </div>
-          ) : !selectedSessionId ? (
-            <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in">
-              <div className="text-6xl mb-4">🎬</div>
-              <h2 className="font-display text-xl font-semibold text-gray-300 mb-2">
-                Lights, camera, capture!
-              </h2>
-              <p className="text-gray-500 text-sm mb-6">No screenshots yet. Start a new capture to get going.</p>
-              <button
-                onClick={() => setShowCapture(true)}
-                className="bg-amber-500 hover:bg-amber-400 text-gray-950 font-semibold px-6 py-2.5 rounded-lg transition-all duration-150 hover:scale-105"
-              >
-                + New Capture
-              </button>
             </div>
           ) : manifest && filteredScreenshots.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in">
               <div className="text-gray-600 text-lg mb-2">No screenshots match your filters</div>
               <div className="text-gray-600 text-sm">Try adjusting the browser or breakpoint filters</div>
             </div>
-          ) : manifest ? (
+          ) : manifest && selectedSessionId ? (
             <ComparisonGrid
               screenshots={filteredScreenshots}
               sessionId={selectedSessionId}
@@ -184,7 +285,8 @@ function App() {
       {showCapture && (
         <CapturePanel
           onClose={() => setShowCapture(false)}
-          onCaptureComplete={handleCaptureComplete}
+          onStartCapture={handleStartCapture}
+          isCapturing={captureState.isCapturing}
         />
       )}
 
