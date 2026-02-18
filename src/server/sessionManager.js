@@ -1,8 +1,13 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { generateManifest } from '../capture/generateManifest.js';
 
-const DATA_DIR = path.resolve('data');
+// In the Tauri sidecar, SILVERSCREEN_DATA_DIR is set by the Rust core to the
+// OS app data directory. In dev/web mode it falls back to ./data.
+const DATA_DIR = process.env.SILVERSCREEN_DATA_DIR
+  ? path.resolve(process.env.SILVERSCREEN_DATA_DIR)
+  : path.resolve('data');
 const SESSIONS_DIR = path.join(DATA_DIR, 'sessions');
 const SESSIONS_INDEX = path.join(DATA_DIR, 'sessions.json');
 

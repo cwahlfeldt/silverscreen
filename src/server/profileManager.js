@@ -2,7 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import { defaultConfig } from '../capture/configLoader.js';
 
-const DATA_DIR = path.resolve('data');
+const DATA_DIR = process.env.SILVERSCREEN_DATA_DIR
+  ? path.resolve(process.env.SILVERSCREEN_DATA_DIR)
+  : path.resolve('data');
 const PROFILE_PATH = path.join(DATA_DIR, 'profile.json');
 
 const DEFAULT_PROFILE = {

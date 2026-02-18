@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Profile } from '../types';
+import { getApiBase } from '../api';
 import { ALL_BROWSERS, BROWSER_CAPTURE_ACTIVE, BROWSER_CAPTURE_INACTIVE } from '../constants';
 
 interface CapturePanelProps {
@@ -26,7 +27,8 @@ export default function CapturePanel({ onClose, onStartCapture, isCapturing }: C
   const [editHideSelectors, setEditHideSelectors] = useState('');
 
   useEffect(() => {
-    fetch('/api/profile')
+    getApiBase()
+      .then((base) => fetch(`${base}/api/profile`))
       .then((r) => r.json())
       .then((p: Profile) => {
         setProfile(p);
@@ -74,7 +76,8 @@ export default function CapturePanel({ onClose, onStartCapture, isCapturing }: C
       screenshot: profile?.screenshot ?? { fullPage: true },
     };
 
-    await fetch('/api/profile', {
+    const base = await getApiBase();
+    await fetch(`${base}/api/profile`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updated),

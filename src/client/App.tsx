@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { Manifest, Screenshot, Session, CaptureState, CaptureProgressEvent } from './types';
+import { getApiBase, waitForServer } from './api';
 import Header from './components/Header';
 import ComparisonGrid from './components/ComparisonGrid';
 import ImageModal from './components/ImageModal';
@@ -10,6 +11,7 @@ import Dashboard from './components/Dashboard';
 type View = 'dashboard' | 'session';
 
 function App() {
+  const [serverReady, setServerReady] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [manifest, setManifest] = useState<Manifest | null>(null);
@@ -40,6 +42,11 @@ function App() {
   });
   const eventSourceRef = useRef<EventSource | null>(null);
 
+  // Wait for sidecar to be ready before loading data
+  useEffect(() => {
+    waitForServer().then(() => setServerReady(true));
+  }, []);
+
   // Persist sidebar state
   useEffect(() => {
     localStorage.setItem('silverscreen:sidebar-collapsed', String(sidebarCollapsed));
@@ -47,7 +54,8 @@ function App() {
 
   const fetchSessions = useCallback(async () => {
     try {
-      const res = await fetch('/api/sessions');
+      const base = await getApiBase();
+      const res = await fetch(`${base}/api/sessions`);
       const data: Session[] = await res.json();
       setSessions(data);
       return data;
@@ -65,7 +73,8 @@ function App() {
     setSelectedImage(null);
 
     try {
-      const res = await fetch(`/api/sessions/${id}/manifest`);
+      const base = await getApiBase();
+      const res = await fetch(`${base}/api/sessions/${id}/manifest`);
       if (!res.ok) {
         setLoading(false);
         return;
@@ -87,8 +96,8 @@ function App() {
   }, []);
 
   useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
+    if (serverReady) fetchSessions();
+  }, [fetchSessions, serverReady]);
 
   function handleSelectSession(id: string) {
     setSelectedSessionId(id);
@@ -97,7 +106,8 @@ function App() {
   }
 
   async function handleDeleteSession(id: string) {
-    await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
+    const base = await getApiBase();
+    await fetch(`${base}/api/sessions/${id}`, { method: 'DELETE' });
     const newSessions = await fetchSessions();
     if (selectedSessionId === id) {
       if (newSessions.length > 0) {
@@ -137,7 +147,8 @@ function App() {
     setShowCapture(false);
 
     // Open SSE stream
-    const es = new EventSource('/api/capture/status');
+    const base = await getApiBase();
+    const es = new EventSource(`${base}/api/capture/status`);
     eventSourceRef.current = es;
 
     es.onmessage = (e) => {
@@ -177,7 +188,7 @@ function App() {
 
     // POST to start capture
     try {
-      const res = await fetch('/api/capture', {
+      const res = await fetch(`${base}/api/capture`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -219,6 +230,16 @@ function App() {
   ].sort();
 
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
+
+  if (!serverReady) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-[#09090f]">
+        <div className="text-amber-400 text-5xl mb-6 animate-pulse-amber">◉</div>
+        <div className="text-gray-300 font-display text-lg font-semibold mb-2">Silverscreen</div>
+        <div className="text-gray-500 text-sm">Starting capture engine...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">

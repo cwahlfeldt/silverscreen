@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import type { Screenshot } from '../types';
+import { getApiBase } from '../api';
 
 interface ImageModalProps {
   screenshot: Screenshot;
@@ -8,6 +9,12 @@ interface ImageModalProps {
 }
 
 export default function ImageModal({ screenshot, sessionId, onClose }: ImageModalProps) {
+  const [apiBase, setApiBase] = useState('');
+
+  useEffect(() => {
+    getApiBase().then(setApiBase);
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -20,7 +27,7 @@ export default function ImageModal({ screenshot, sessionId, onClose }: ImageModa
     };
   }, [onClose]);
 
-  const imageUrl = `/api/sessions/${sessionId}/screenshots/${screenshot.browser}/${screenshot.page}/${screenshot.filename}`;
+  const imageUrl = `${apiBase}/api/sessions/${sessionId}/screenshots/${screenshot.browser}/${screenshot.page}/${screenshot.filename}`;
   const downloadUrl = imageUrl;
 
   return (

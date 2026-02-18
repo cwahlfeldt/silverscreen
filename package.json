@@ -8,15 +8,37 @@
   },
   "scripts": {
     "dev": "concurrently \"node src/server/index.js\" \"vite\"",
+    "dev:frontend": "vite",
+    "dev:tauri": "cargo tauri dev",
     "build": "tsc -b && vite build",
+    "build:sidecar": "node_modules/.bin/pkg src/sidecar/server.js --targets node18-macos-arm64,node18-macos-x64,node18-win-x64,node18-linux-x64 --out-path src-tauri/binaries/ --compress GZip",
+    "build:tauri": "npm run build && npm run build:sidecar && cargo tauri build",
     "start": "node src/server/index.js",
     "capture": "node bin/silverscreen.js capture",
     "lint": "eslint ."
   },
-  "keywords": ["screenshot", "responsive", "cli", "playwright", "comparison"],
+  "pkg": {
+    "assets": [
+      "src/server/**/*",
+      "src/capture/**/*",
+      "dist/**/*",
+      "node_modules/playwright/**/*"
+    ],
+    "scripts": [
+      "src/**/*.js"
+    ]
+  },
+  "keywords": [
+    "screenshot",
+    "responsive",
+    "cli",
+    "playwright",
+    "comparison"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
+    "@tauri-apps/api": "^2.10.1",
     "commander": "^11.0.0",
     "concurrently": "^9.1.2",
     "express": "^4.21.2",
@@ -32,6 +54,7 @@
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.4",
+    "@yao-pkg/pkg": "^6.14.0",
     "eslint": "^9.36.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.22",

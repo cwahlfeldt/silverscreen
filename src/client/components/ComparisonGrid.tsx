@@ -1,5 +1,6 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect, useState } from 'react';
 import type { Screenshot } from '../types';
+import { getApiBase } from '../api';
 import { BROWSER_COLORS } from '../constants';
 
 interface ComparisonGridProps {
@@ -41,6 +42,11 @@ function BreakpointSection({ breakpoint, screenshots, sessionId, onImageClick }:
   const scrollContainersRef = useRef<HTMLDivElement[]>([]);
   const scrollingFromIndexRef = useRef<number | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [apiBase, setApiBase] = useState('');
+
+  useEffect(() => {
+    getApiBase().then(setApiBase);
+  }, []);
 
   const handleScroll = useCallback((index: number) => {
     if (scrollingFromIndexRef.current !== null && scrollingFromIndexRef.current !== index) return;
@@ -73,7 +79,7 @@ function BreakpointSection({ breakpoint, screenshots, sessionId, onImageClick }:
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {screenshots.map((screenshot, index) => {
-          const imgUrl = `/api/sessions/${sessionId}/screenshots/${screenshot.browser}/${screenshot.page}/${screenshot.filename}`;
+          const imgUrl = `${apiBase}/api/sessions/${sessionId}/screenshots/${screenshot.browser}/${screenshot.page}/${screenshot.filename}`;
           return (
             <div
               key={`${screenshot.browser}-${screenshot.breakpoint}-${screenshot.timestamp}`}
