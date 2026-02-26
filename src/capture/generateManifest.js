@@ -64,7 +64,9 @@ export function generateManifest(screenshotsDir, outputPath) {
       );
 
       for (const file of files) {
-        const match = file.match(/^(.+?)_(\d+)\.(png|jpg|jpeg|webp)$/);
+        // Matches: breakpoint_TIMESTAMP_COUNTER.ext  (new format)
+        // or:      breakpoint_TIMESTAMP.ext           (legacy format)
+        const match = file.match(/^(.+?)_(\d{13})(?:_\d+)?\.(png|jpg|jpeg|webp)$/);
         if (match) {
           const [, breakpoint, timestamp, extension] = match;
           manifest.screenshots.push({

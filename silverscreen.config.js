@@ -47,14 +47,33 @@ export default {
     // args: ['--no-sandbox', '--disable-setuid-sandbox'],
   },
 
-  // Delay in ms before taking screenshots (wait for images/assets to load)
-  delay: 2000,
+  // Number of parallel (url × browser) captures running simultaneously.
+  // Higher = faster, but puts more load on the target server.
+  concurrency: 3,
+
+  // Playwright page.goto() wait strategy.
+  // 'load'             — waits for all resources + JS (good default)
+  // 'domcontentloaded' — fastest, but JS may not have run yet
+  // 'networkidle'      — slowest (~5-10s), use for heavy async/SPA sites
+  waitUntil: 'load',
+
+  // ms to wait after viewport resize before screenshot (was hardcoded 1000ms).
+  // 200ms is enough for CSS reflow on most sites.
+  breakpointDelay: 200,
+
+  // Scroll through the page before screenshotting to trigger lazy-loaded images.
+  // Set to false for faster captures on static sites.
+  scrollToLoad: true,
+
+  // Extra delay in ms after page load (on top of waitUntil). 0 to disable.
+  delay: 0,
 
   // CSS selectors to hide with display: none !important
   hideSelectors: [
     ".micromodalcontainer",
     ".micromodaloverlay",
     ".micromodal-slide",
+    "#consent-banner",
   ],
 
   // Screenshot configuration

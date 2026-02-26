@@ -89,11 +89,8 @@ program
 
       await screenshotter.init();
 
-      for (let i = 0; i < urls.length; i++) {
-        const url = urls[i];
-        console.log(`\nProcessing (${i + 1}/${urls.length}): ${url}`);
-        await screenshotter.captureScreenshots(url, screenshotsDir);
-      }
+      console.log(`\nCapturing ${urls.length} URL(s) across ${(config.browsers || ['chromium']).length} browser(s) [concurrency: ${config.concurrency ?? 3}]...`);
+      await screenshotter.captureAll(urls, screenshotsDir);
 
       await screenshotter.close();
 

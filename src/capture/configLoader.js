@@ -13,6 +13,10 @@ export const defaultConfig = {
     'desktop-1440px': 1440,
     'large-1920px': 1920,
   },
+  concurrency: 3,
+  waitUntil: 'load',
+  breakpointDelay: 200,
+  scrollToLoad: true,
 };
 
 export async function loadConfig() {

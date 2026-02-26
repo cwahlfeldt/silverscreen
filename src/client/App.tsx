@@ -6,6 +6,7 @@ import ComparisonGrid from './components/ComparisonGrid';
 import ImageModal from './components/ImageModal';
 import SessionSidebar from './components/SessionSidebar';
 import CapturePanel from './components/CapturePanel';
+import SettingsModal from './components/SettingsModal';
 import Dashboard from './components/Dashboard';
 
 type View = 'dashboard' | 'session';
@@ -17,6 +18,7 @@ function App() {
   const [manifest, setManifest] = useState<Manifest | null>(null);
   const [loading, setLoading] = useState(false);
   const [showCapture, setShowCapture] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [currentView, setCurrentView] = useState<View>('dashboard');
 
   // Sidebar collapse (persisted)
@@ -119,6 +121,15 @@ function App() {
         setCurrentView('dashboard');
       }
     }
+  }
+
+  async function handleClearAll() {
+    const base = await getApiBase();
+    await fetch(`${base}/api/sessions`, { method: 'DELETE' });
+    setSessions([]);
+    setSelectedSessionId(null);
+    setManifest(null);
+    setCurrentView('dashboard');
   }
 
   function handleLogoClick() {
@@ -254,6 +265,7 @@ function App() {
         onBreakpointChange={setSelectedBreakpoint}
         onNewCapture={() => setShowCapture(true)}
         onLogoClick={handleLogoClick}
+        onOpenSettings={() => setShowSettings(true)}
         sessionName={currentView === 'session' ? selectedSession?.name : undefined}
         captureState={captureState}
       />
@@ -308,6 +320,16 @@ function App() {
           onClose={() => setShowCapture(false)}
           onStartCapture={handleStartCapture}
           isCapturing={captureState.isCapturing}
+        />
+      )}
+
+      {/* Settings modal */}
+      {showSettings && (
+        <SettingsModal
+          sessions={sessions}
+          onClose={() => setShowSettings(false)}
+          onDeleteSession={handleDeleteSession}
+          onClearAll={handleClearAll}
         />
       )}
 

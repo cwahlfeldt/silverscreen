@@ -7,6 +7,7 @@ import {
   listSessions,
   getSession,
   deleteSession,
+  clearAllSessions,
   getSessionScreenshotsDir,
   generateSessionManifest,
   getSessionManifest,
@@ -89,6 +90,15 @@ app.delete('/api/sessions/:id', (req, res) => {
   res.json({ ok: true });
 });
 
+app.delete('/api/sessions', (_req, res) => {
+  try {
+    clearAllSessions();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/sessions/:id/manifest', (req, res) => {
   const manifest = getSessionManifest(req.params.id);
   if (!manifest) return res.status(404).json({ error: 'Manifest not found' });
@@ -104,7 +114,8 @@ app.use('/api/sessions/:id/screenshots', (req, res, next) => {
 app.post('/api/capture', async (req, res) => {
   try {
     const fileConfig = await loadConfig();
-    const config = { ...fileConfig, ...(runtimeConfig || {}) };
+    const profile = getProfile();
+    const config = { ...fileConfig, ...profile, ...(runtimeConfig || {}) };
 
     const {
       name = `Session ${new Date().toLocaleDateString()}`,
@@ -144,9 +155,7 @@ app.post('/api/capture', async (req, res) => {
       try {
         await screenshotter.init();
 
-        for (const url of urls) {
-          await screenshotter.captureScreenshots(url, outputDir);
-        }
+        await screenshotter.captureAll(urls, outputDir);
 
         await screenshotter.close();
         generateSessionManifest(session.id);

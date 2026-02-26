@@ -90,6 +90,14 @@ export function deleteSession(id) {
   writeIndex(index);
 }
 
+export function clearAllSessions() {
+  if (fs.existsSync(SESSIONS_DIR)) {
+    fs.rmSync(SESSIONS_DIR, { recursive: true, force: true });
+  }
+  fs.mkdirSync(SESSIONS_DIR, { recursive: true });
+  writeIndex([]);
+}
+
 export function getSessionScreenshotsDir(id) {
   return path.join(SESSIONS_DIR, id, 'screenshots');
 }
