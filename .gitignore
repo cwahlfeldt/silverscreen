@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Playwright script dependencies
+scripts/node_modules/
+scripts/package-lock.json
