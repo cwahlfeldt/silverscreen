@@ -35,7 +35,11 @@ dependencies:
   path_provider: ^2.1.0
   uuid: ^4.0.0
   window_manager: ^0.3.9
-  
+  macos_ui: ^2.1.0
+  fluent_ui: ^4.9.0
+  flutter_localizations:
+    sdk: flutter
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
